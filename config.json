@@ -1,0 +1,33 @@
+{
+  "logging": {
+    "level": "INFO",
+    "emoji": true
+  },
+  "ndi": {
+    "hostname": "169.254.7.57",
+    "tools": ["8700339.rom"],
+    "rom_dir": "./sroms",
+    "encrypted": false,
+    "cipher": ""
+  },
+  "robot": {
+    "ip": "192.168.0.79"
+  },
+  "dataset": {
+    "save_json": false,
+    "dataset_root": "./dataset",
+    "marker_dir": "./dataset/marker_pose_data",
+    "robot_dir": "./dataset/robot_pose_data",
+    "robot_pose_file": "./dataset/poses/robot_pose_test.json"
+  },
+  "calibration": {
+    "duration_sec": 10,
+    "samples": 10
+  },
+  "teleoperation": {
+    "ttool": "8700340.rom",
+    "x_offset": 0.0,
+    "y_offset": -50.0,
+    "z_offset": 0.0
+  }
+}
