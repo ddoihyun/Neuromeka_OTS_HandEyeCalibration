@@ -7,7 +7,6 @@
 
 # Compiled extensions
 *.so
-*.pyd
 *.dll
 
 # Distribution / packaging
