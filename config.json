@@ -14,15 +14,16 @@
     "ip": "192.168.0.79"
   },
   "dataset": {
-    "save_json": false,
     "dataset_root": "./dataset",
-    "marker_dir": "./dataset/marker_pose_data",
-    "robot_dir": "./dataset/robot_pose_data",
-    "robot_pose_file": "./dataset/poses/robot_pose_test.json"
+    "robot_pose_file": "./dataset/poses/robot_pose_broad.json"
   },
   "calibration": {
     "duration_sec": 10,
     "samples": 10
+  },
+  "test": {
+    "robot_pose_file": "./dataset/poses/robot_pose_test.json",
+    "calibration_data_file": "./dataset/results/calibration_result.json"
   },
   "teleoperation": {
     "ttool": "8700340.rom",
