@@ -322,9 +322,7 @@ def main():
                 duration_sec=config["calibration"]["duration_sec"],
                 samples=config["calibration"]["samples"]
             )
-            calib = HandEyeCalibration(csv_path=paths["csv"],
-                           result_json_path=paths["json"],
-                           result_png_path=paths["png"])
+            calib = HandEyeCalibration(csv_path=paths["csv"])
             calib.run()
             STATE = State.INIT
 
