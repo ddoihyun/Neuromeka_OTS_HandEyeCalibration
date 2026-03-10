@@ -42,8 +42,7 @@ class HandEyeCalibration:
         T_base_ee_target = inv(T_ndi_base) @ T_ndi_marker_new @ inv(T_ee_marker)
     """
 
-    def __init__(self, csv_path='./calibration_data_broad.csv',
-                 result_json_path=None, result_png_path=None):
+    def __init__(self, csv_path=None, result_json_path=None, result_png_path=None):
         self.csv_path = csv_path
         self.result_json_path, self.result_png_path = self._resolve_output_paths(
             csv_path, result_json_path, result_png_path)
