@@ -114,9 +114,9 @@ class HandEyeCalibration:
             averaged_list.append(avg_data)
 
         self.averaged_data = pd.DataFrame(averaged_list).reset_index(drop=True)
-        print(f"??? ? pose ?: {len(self.averaged_data)}")
+        print(f"평균화 후  pose 수: {len(self.averaged_data)}")
         if total_removed:
-            print(f"  Pose ?? outlier ??: {total_removed} samples")
+            print(f"  Pose outlier(이상치) 제거: {total_removed} samples")
 
         if 'error' in self.raw_data.columns:
             err = self.raw_data['error']
@@ -518,7 +518,6 @@ class HandEyeCalibration:
         T_ee_marker_opt = self._rotvec_t_to_matrix(result.x[6:9], result.x[9:12])
         ndi_bias_opt = result.x[12:15]
         return T_ndi_base_opt, T_ee_marker_opt, ndi_bias_opt, result.cost
-
 
     def refine_nonlinear_with_ndi_axis_scale(self, data, T_ndi_base_init, T_ee_marker_init,
                                              ndi_position_bias_init=None,

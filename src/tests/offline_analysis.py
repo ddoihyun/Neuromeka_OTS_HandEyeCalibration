@@ -45,8 +45,6 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (3D subplot 등록)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 프로젝트 루트 탐색
@@ -320,6 +318,197 @@ def plot_trajectory_2d(df: pd.DataFrame, pred_pfx: str, real_pfx: str,
     fig.tight_layout()
     _save(fig, out_path, show)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Plotly 통합 궤적 시각화 (인터랙티브 HTML)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def plot_trajectory_plotly(df: pd.DataFrame, pred_pfx: str, real_pfx: str,
+                           out_path: str, show: bool = False):
+    """
+    실제 로봇(Ground Truth)과 추정 위치(Estimated)의 이동 경로를
+    Plotly 로 한꺼번에 시각화한다.
+
+    레이아웃:
+    - 상단: 3D Trajectory (추정 / 실측 동시 표시)
+    - 하단 좌: XY 평면 투영
+    - 하단 중: XZ 평면 투영
+    - 하단 우: YZ 평면 투영
+
+    출력: HTML (인터랙티브) + PNG (정적 스냅샷)
+    """
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+    except ImportError:
+        log.error("plotly 가 설치되어 있지 않습니다. `pip install plotly` 후 재실행하세요.")
+        return
+
+    px_col = f"{pred_pfx}_x"; py_col = f"{pred_pfx}_y"; pz_col = f"{pred_pfx}_z"
+    rx_col = f"{real_pfx}_x"; ry_col = f"{real_pfx}_y"; rz_col = f"{real_pfx}_z"
+
+    # ── 컬러 설정 ─────────────────────────────────────────────────────────────
+    C_PRED = "#2196F3"   # 파란색 – 추정값
+    C_REAL = "#FF5722"   # 주황색 – 실측값
+
+    # ── 서브플롯 구성: 3D(상단 전체) + 2D x 3(하단) ───────────────────────
+    fig = make_subplots(
+        rows=2, cols=3,
+        specs=[
+            [{"type": "scene", "colspan": 3}, None, None],
+            [{"type": "xy"},   {"type": "xy"}, {"type": "xy"}],
+        ],
+        subplot_titles=(
+            "3D Trajectory (Estimated vs Ground Truth)",
+            "", "", "",
+            "XY Plane", "XZ Plane", "YZ Plane",
+        ),
+        vertical_spacing=0.12,
+        horizontal_spacing=0.06,
+    )
+
+    frame_idx = df["frame_idx"].values
+
+    # ── 3D 궤적 ──────────────────────────────────────────────────────────────
+    # 추정 궤적
+    fig.add_trace(go.Scatter3d(
+        x=df[px_col], y=df[py_col], z=df[pz_col],
+        mode="lines+markers",
+        name="Estimated",
+        line=dict(color=C_PRED, width=3),
+        marker=dict(size=2, color=C_PRED),
+        customdata=frame_idx,
+        hovertemplate=(
+            "Frame: %{customdata}<br>"
+            "X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>Z: %{z:.2f} mm<extra>Estimated</extra>"
+        ),
+    ), row=1, col=1)
+
+    # 시작/끝 마커 (추정)
+    for i, symbol, label in [(0, "circle", "Est. Start"), (-1, "diamond", "Est. End")]:
+        fig.add_trace(go.Scatter3d(
+            x=[df[px_col].iloc[i]], y=[df[py_col].iloc[i]], z=[df[pz_col].iloc[i]],
+            mode="markers",
+            name=label,
+            marker=dict(size=8, color=C_PRED, symbol=symbol,
+                        line=dict(color="white", width=1)),
+            showlegend=True,
+        ), row=1, col=1)
+
+    # 실측 궤적
+    fig.add_trace(go.Scatter3d(
+        x=df[rx_col], y=df[ry_col], z=df[rz_col],
+        mode="lines+markers",
+        name="Ground Truth",
+        line=dict(color=C_REAL, width=3, dash="dash"),
+        marker=dict(size=2, color=C_REAL),
+        customdata=frame_idx,
+        hovertemplate=(
+            "Frame: %{customdata}<br>"
+            "X: %{x:.2f} mm<br>Y: %{y:.2f} mm<br>Z: %{z:.2f} mm<extra>Ground Truth</extra>"
+        ),
+    ), row=1, col=1)
+
+    # 시작/끝 마커 (실측)
+    for i, symbol, label in [(0, "circle", "GT Start"), (-1, "diamond", "GT End")]:
+        fig.add_trace(go.Scatter3d(
+            x=[df[rx_col].iloc[i]], y=[df[ry_col].iloc[i]], z=[df[rz_col].iloc[i]],
+            mode="markers",
+            name=label,
+            marker=dict(size=8, color=C_REAL, symbol=symbol,
+                        line=dict(color="white", width=1)),
+            showlegend=True,
+        ), row=1, col=1)
+
+    # ── 연결선 (각 프레임의 추정↔실측 오차 표시) ─────────────────────────
+    # 위치 오차가 큰 프레임만 연결선 표시 (전체 표시 시 너무 지저분해짐)
+    pos_err = df[COL_POS_ERR].values
+    high_mask = pos_err > pos_err.mean() + pos_err.std()
+    for idx in df.index[high_mask]:
+        fig.add_trace(go.Scatter3d(
+            x=[df[px_col].iloc[idx], df[rx_col].iloc[idx]],
+            y=[df[py_col].iloc[idx], df[ry_col].iloc[idx]],
+            z=[df[pz_col].iloc[idx], df[rz_col].iloc[idx]],
+            mode="lines",
+            line=dict(color="rgba(200,50,50,0.4)", width=1),
+            showlegend=False,
+            hoverinfo="skip",
+        ), row=1, col=1)
+
+    # ── 2D 평면 투영 ─────────────────────────────────────────────────────────
+    planes_2d = [
+        # (row, col, x_pred, y_pred, x_real, y_real, xlabel, ylabel)
+        (2, 1, px_col, py_col, rx_col, ry_col, "X (mm)", "Y (mm)"),
+        (2, 2, px_col, pz_col, rx_col, rz_col, "X (mm)", "Z (mm)"),
+        (2, 3, py_col, pz_col, ry_col, rz_col, "Y (mm)", "Z (mm)"),
+    ]
+
+    for row, col, xp, yp, xr, yr, xl, yl in planes_2d:
+        # 추정
+        fig.add_trace(go.Scatter(
+            x=df[xp], y=df[yp],
+            mode="lines",
+            name="Estimated",
+            line=dict(color=C_PRED, width=1.5),
+            customdata=frame_idx,
+            hovertemplate=f"Frame: %{{customdata}}<br>{xl}: %{{x:.2f}}<br>{yl}: %{{y:.2f}}<extra>Estimated</extra>",
+            showlegend=(col == 1),  # 첫 번째 패널에서만 범례 표시
+        ), row=row, col=col)
+        # 실측
+        fig.add_trace(go.Scatter(
+            x=df[xr], y=df[yr],
+            mode="lines",
+            name="Ground Truth",
+            line=dict(color=C_REAL, width=1.5, dash="dash"),
+            customdata=frame_idx,
+            hovertemplate=f"Frame: %{{customdata}}<br>{xl}: %{{x:.2f}}<br>{yl}: %{{y:.2f}}<extra>Ground Truth</extra>",
+            showlegend=(col == 1),
+        ), row=row, col=col)
+
+        # 축 레이블
+        axis_idx = (col - 1) + (0 if row == 1 else 3)  # subplot 인덱싱
+        xaxis_key = f"xaxis{axis_idx + 2}" if axis_idx > 0 else "xaxis2"
+        yaxis_key = f"yaxis{axis_idx + 2}" if axis_idx > 0 else "yaxis2"
+        fig.update_layout(**{
+            xaxis_key: dict(title=xl),
+            yaxis_key: dict(title=yl),
+        })
+
+    # ── 3D 축 레이블 ─────────────────────────────────────────────────────────
+    fig.update_scenes(
+        xaxis_title="X (mm)",
+        yaxis_title="Y (mm)",
+        zaxis_title="Z (mm)",
+    )
+
+    # ── 전체 레이아웃 ─────────────────────────────────────────────────────────
+    fig.update_layout(
+        title=dict(
+            text="Trajectory Comparison – Estimated vs Ground Truth",
+            font=dict(size=16),
+            x=0.5,
+        ),
+        height=900,
+        template="plotly_white",
+        legend=dict(
+            x=1.02, y=0.95,
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor="#cccccc",
+            borderwidth=1,
+        ),
+        margin=dict(l=40, r=160, t=80, b=40),
+    )
+
+    # ── 저장 ─────────────────────────────────────────────────────────────────
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+
+    # HTML (인터랙티브)
+    html_path = out_path.replace(".png", ".html")
+    fig.write_html(html_path, include_plotlyjs="cdn")
+    log.success(f"저장 (인터랙티브 HTML): {html_path}")
+
+    if show:
+        fig.show()
+
 
 def plot_position_error(df: pd.DataFrame, out_path: str,
                         pos_threshold: float, show: bool = False):
@@ -473,6 +662,7 @@ def run_offline_analysis(
     pos_threshold: float = 5.0,
     rot_threshold: float = 3.0,
     show:          bool  = False,
+    use_plotly: bool = True,
 ):
     """
     CSV 로그를 로드하고 전체 trajectory 분석·시각화를 수행한다.
@@ -513,7 +703,10 @@ def run_offline_analysis(
                             pos_threshold, rot_threshold, show)
     plot_dashboard(df, pred_pfx, real_pfx, _p("dashboard.png"),
                    pos_threshold, rot_threshold, show)
-
+    if use_plotly:
+        plot_trajectory_plotly(df, pred_pfx, real_pfx,
+                               _p("trajectory_plotly.html"), show)
+        
     log.success(f"모든 그래프 저장 완료 → {out_dir}")
 
 
@@ -549,6 +742,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help="자세 오차 강조 임계값 deg (기본: 3.0)")
     p.add_argument("--show", action="store_true",
         help="그래프를 화면에 표시 (기본: 파일 저장만)")
+    p.add_argument("--no-plotly", action="store_true",
+               help="Plotly 인터랙티브 궤적 시각화를 건너뜁니다.")
+
     return p
 
 
@@ -561,6 +757,7 @@ def main():
         except Exception:
             pass
 
+
     csv_path = args.csv if os.path.isabs(args.csv) \
                else str(PROJECT_ROOT / args.csv)
     out_dir  = args.out  if os.path.isabs(args.out)  \
@@ -572,6 +769,7 @@ def main():
         pos_threshold = args.pos_thr,
         rot_threshold = args.rot_thr,
         show          = args.show,
+        use_plotly    = True,
     )
 
 
