@@ -49,6 +49,7 @@ coverage.xml
 htmlcov/
 .pytest_cache/
 
+
 # =========================
 # Temporary CSV or logs
 # =========================
@@ -56,6 +57,7 @@ htmlcov/
 *.tmp
 *.csv
 *.pngcl
+dataset/logs/
 
 # =========================
 # Jupyter
