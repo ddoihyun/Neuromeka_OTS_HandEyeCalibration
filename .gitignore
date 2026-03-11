@@ -55,7 +55,7 @@ htmlcov/
 *.log
 *.tmp
 *.csv
-*.png
+*.pngcl
 
 # =========================
 # Jupyter
