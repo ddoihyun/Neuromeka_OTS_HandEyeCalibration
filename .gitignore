@@ -48,6 +48,7 @@ Thumbs.db
 coverage.xml
 htmlcov/
 .pytest_cache/
+.png
 
 # =========================
 # Jupyter
