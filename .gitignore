@@ -48,7 +48,14 @@ Thumbs.db
 coverage.xml
 htmlcov/
 .pytest_cache/
-.png
+
+# =========================
+# Temporary CSV or logs
+# =========================
+*.log
+*.tmp
+*.csv
+*.png
 
 # =========================
 # Jupyter
