@@ -76,7 +76,11 @@ class _ColorFormatter(logging.Formatter):
         dim   = _DIM   if self.use_color else ""
 
         time_str   = self.formatTime(record, "%H:%M:%S")
-        name_short = record.name.split(".")[-1]   # 마지막 패키지명만 표시
+        filename = record.filename.split(".")[0]   # .py 제거
+        funcname = record.funcName
+        # lineno = record.lineno
+        # name_short = f"{filename}/{funcname}:{lineno}"
+        name_short = f"{filename}/{funcname}"
 
         level_tag = f"{col}{bold}[{level:<8}]{reset}"
         header    = f"{dim}{time_str}{reset} {level_tag} {dim}({name_short}){reset}"
