@@ -166,7 +166,10 @@ def _connect_and_load_tools(hostname, tools, rom_dir, encrypted, cipher):
     ------
     RuntimeError : 연결 실패 시
     """
-    validate_rom_files(tools, rom_dir)
+    validated = validate_rom_files(tools, rom_dir)
+    if validated is None:
+        raise RuntimeError("ROM file validation failed.")
+    
     api      = ndi_vega_api.CombinedApi()
     protocol = ndi_vega_api.Protocol.SecureTCP if encrypted else ndi_vega_api.Protocol.TCP
 
