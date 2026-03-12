@@ -10,7 +10,9 @@ import src.ndi.tracker as ndi
 from src.robot.controller import RobotController
 from src.calib.calibration import HandEyeCalibration
 from src.calib.navigator import Navigator
-from src.utils.io import save_data_to_csv, load_config, get_calibration_filepaths
+import src.utils.io as io
+from src.utils.logger import get_logger
+log = get_logger(__name__)
 
 # ===========================
 # State machine
@@ -25,15 +27,15 @@ class State:
 # ===========================
 # Helper
 # ===========================
-def is_valid_pose(pos, euler_deg, pos_limit=5000.0, euler_limit=360.0):
-    """기본 범위 체크로 비정상 포즈 필터링"""
-    if np.any(np.abs(pos) > pos_limit):
-        return False
-    if np.any(np.abs(euler_deg) > euler_limit):
-        return False
-    if np.any(np.isnan(pos)) or np.any(np.isnan(euler_deg)):
-        return False
-    return True
+# def is_valid_pose(pos, euler_deg, pos_limit=5000.0, euler_limit=360.0):
+#     """기본 범위 체크로 비정상 포즈 필터링"""
+#     if np.any(np.abs(pos) > pos_limit):
+#         return False
+#     if np.any(np.abs(euler_deg) > euler_limit):
+#         return False
+#     if np.any(np.isnan(pos)) or np.any(np.isnan(euler_deg)):
+#         return False
+#     return True
 
 # ===========================
 # CALIBRATION MODE
@@ -43,32 +45,28 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
                          duration_sec, samples,
                          ):
 
-    paths = get_calibration_filepaths(robot_pose_file, dataset_root)
-    csv_file = paths["csv"]
-
-    if os.path.exists(csv_file):
-        os.remove(csv_file)
-        print(f"Deleted existing {csv_file}")
+    csv_file = io.delete_calibration_csv(robot_pose_file, dataset_root)
 
     robot_controller.move_to_home()
 
+    # 로봇 포즈 JSON 로드 및 sample_number 기준 정렬
     with open(robot_pose_file, "r", encoding="utf-8") as f:
         pose_list = sorted(json.load(f), key=lambda x: x["sample_number"])
 
-    api = ndi.connect_and_setup_calibration_tools(
-        hostname, tools, rom_dir, encrypted, cipher
-    )
+    api = ndi.connect_and_setup_calibration_tools(hostname, tools, rom_dir, encrypted, cipher)
 
     try:
         for pose in pose_list:
             pose_id    = pose["sample_number"]
             target_pos = pose["pose"]
 
-            print(f"\n[CALIB] Pose {pose_id}: Collecting {samples} samples "
+            # print(f"\n[CALIB] Pose {pose_id}: Collecting {samples} samples "
+            #       f"(timeout: {duration_sec}s)...")
+            log.info(f"\n[CALIB] Pose {pose_id}: Collecting {samples} samples "
                   f"(timeout: {duration_sec}s)...")
-            robot_controller.movel_to_pose(
-                target_pos, vel_ratio=10, acc_ratio=10, timeout=60)
-            time.sleep(0.5)
+            
+            robot_controller.movel_to_pose(target_pos, vel_ratio=10, acc_ratio=10, timeout=60)
+            time.sleep(1)
 
             def on_sample(full_data):
                 pos = full_data["position"]
@@ -82,30 +80,32 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
                     "error": err,
                 }
 
-                pose_state = robot_controller.indy.get_control_state()['p']
+                pose_state = robot_controller.get_current_pose()
                 robot_data = {
                     "x": pose_state[0], "y": pose_state[1], "z": pose_state[2],
                     "u": pose_state[3], "v": pose_state[4], "w": pose_state[5],
                 }
 
-                save_data_to_csv(csv_file, full_data["timestamp"], pose_id,
-                                 tool_data, robot_data=robot_data)
+                io.save_data_to_csv(csv_file, full_data["timestamp"], pose_id, tool_data, robot_data=robot_data)
 
-            collected = ndi.collect_marker_samples(
-                api, samples, duration_sec, pose_id, on_sample
-            )
+            collected = ndi.collect_marker_samples(api, samples, duration_sec, pose_id, on_sample)
 
-            print(f"\n[INFO] Pose {pose_id} saved. samples={len(collected)}")
+            # print(f"\n[INFO] Pose {pose_id} saved. samples={len(collected)}")
+            log.info(f"\nPose {pose_id} saved. samples={len(collected)}")
+
             if len(collected) == 0:
-                print(f"[ERROR] Pose {pose_id}: NO VALID DATA!", flush=True)
+                # print(f"[ERROR] Pose {pose_id}: NO VALID DATA!", flush=True)
+                log.error(f"Pose {pose_id}: NO VALID DATA!", flush=True)
+
             elif len(collected) < samples:
-                print(f"[WARNING] Pose {pose_id}: Only "
-                      f"{len(collected)}/{samples} samples (timeout).", flush=True)
+                # print(f"[WARNING] Pose {pose_id}: Only {len(collected)}/{samples} samples (timeout).", flush=True)
+                log.warning(f"[WARNING] Pose {pose_id}: Only {len(collected)}/{samples} samples (timeout).", flush=True)
 
     finally:
         api.stopTracking()
         robot_controller.move_to_home()
-        print("Calibration finished.", flush=True)
+        # print("Calibration finished.", flush=True)
+        log.info("Calibration finished.", flush=True)
 
 # ===========================
 # TELEOPERATION MODE
@@ -180,9 +180,9 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
             pos_arr = np.array([result['x'], result['y'], result['z']])
             euler_arr = np.array([result['u'], result['v'], result['w']])
 
-            if not is_valid_pose(pos_arr, euler_arr):
-                print("[WARNING] 변환된 포즈가 유효 범위를 벗어났습니다. 재인식합니다.")
-                continue
+            # if not is_valid_pose(pos_arr, euler_arr):
+            #     print("[WARNING] 변환된 포즈가 유효 범위를 벗어났습니다. 재인식합니다.")
+            #     continue
 
             pose = {**raw_pose, **result}
 
@@ -262,7 +262,7 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
 # ===========================
 def main():
     STATE  = State.INIT
-    config = load_config("config.json", base_dir=Path(__file__).resolve().parent)
+    config = io.load_config("config.json", base_dir=Path(__file__).resolve().parent)
 
     hostname  = config["ndi"]["hostname"]
     tools     = config["ndi"]["tools"]
@@ -280,7 +280,7 @@ def main():
     y_offset = config["teleoperation"]["y_offset"]
     z_offset = config["teleoperation"]["z_offset"]
 
-    paths = get_calibration_filepaths(robot_pose_file, dataset_root)
+    paths = io.get_calibration_filepaths(robot_pose_file, dataset_root)
 
     while True:
         if STATE == State.INIT:
