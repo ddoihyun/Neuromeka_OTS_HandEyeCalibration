@@ -35,6 +35,18 @@ def on_error_print_debug_message(method_name, error_code):
         return True
     return False
 
+def validate_rom_files(tools, rom_dir):
+    """연결 전 ROM 파일 존재 검증. 실패 시 None 반환."""
+    validated = []
+    for tool in filter(None, [t.strip() for t in tools]):
+        tool_path = os.path.join(rom_dir, tool)
+        if not os.path.isfile(tool_path):
+            log.error(f"Cannot access ROM file: {tool_path}")
+            return None
+        log.success(f"Found ROM file: {tool_path}")
+        validated.append(tool)
+    return validated
+
 def load_tool(api, tool_definition_file_path):
     """
     NDI Vega 장비에서 tool SROM 파일을 로드하고 사용 가능한 포트를 반환하는 초기화 함수
@@ -116,15 +128,17 @@ def decode_transform_status(t):
     }
 
 def extract_full_data_dict(tool_data, timestamp=None):
-    """NDI Vega ToolData 객체의 status와 Tool 정보(위치, 에러 여부 등)를 Python dict로 변환"""
+    """NDI Vega ToolData 객체의 status와 Tool 정보를 Python dict로 변환"""
     t    = tool_data.transform
-    # s    = tool_data.timespec_s
-    # ns   = tool_data.timespec_ns
+    
+    t_s  = tool_data.timespec_s
+    t_ns = tool_data.timespec_ns
+    precise_timestamp = t_s + t_ns * 1e-9
 
     info = decode_transform_status(t)
 
     return {
-        "timestamp":   timestamp if timestamp is not None else time.time(),
+        "timestamp":   timestamp if timestamp is not None else precise_timestamp,
         "tool_handle": f"{t.toolHandle:02X}",
         "position":    {"x": t.tx,  "y": t.ty,  "z": t.tz},
         "quaternion":  {"w": t.q0,  "x": t.qx,  "y": t.qy,  "z": t.qz},
@@ -152,6 +166,7 @@ def _connect_and_load_tools(hostname, tools, rom_dir, encrypted, cipher):
     ------
     RuntimeError : 연결 실패 시
     """
+    validate_rom_files(tools, rom_dir)
     api      = ndi_vega_api.CombinedApi()
     protocol = ndi_vega_api.Protocol.SecureTCP if encrypted else ndi_vega_api.Protocol.TCP
 
@@ -273,7 +288,7 @@ def collect_marker_samples(api, samples, duration_sec, pose_id, on_sample):
 # ===========================
 # Teleoperation 모드
 # ===========================
-def connect_and_setup_tools(hostname, tools, ttool, rom_dir, encrypted, cipher):
+def connect_and_setup_tools(hostname, ttool, rom_dir, encrypted, cipher):
     api      = ndi_vega_api.CombinedApi()
     protocol = ndi_vega_api.Protocol.SecureTCP if encrypted else ndi_vega_api.Protocol.TCP
 
@@ -381,8 +396,8 @@ def get_latest_valid_pose(api, ttool_handle, timeout_sec=5.0):
 # ===========================
 # Tracking 모드
 # ===========================
-def on_data(data):
-    """트래킹 데이터 기본 출력 콜백 (CLI 및 Tracking 모드 공용)."""
+def print_tracking_data(data):
+    """트래킹 데이터 기본 출력 콜백 (CLI 및 Tracking 모드)."""
     pos = data["position"]
     q   = data["quaternion"]
     ts  = time.strftime("[%H:%M:%S]", time.localtime(data["timestamp"]))
@@ -395,13 +410,13 @@ def on_data(data):
         f"missing={data['missing']} face={data['face']}"
     )
 
-def run_tracking(hostname, tools, rom_dir, encrypted, cipher, on_data):
+def run_tracking(hostname, tools, rom_dir, encrypted, cipher, print_tracking_data):
     """
-    Tracking 모드: 연결 → 트래킹 시작 → on_data 콜백으로 데이터 전달 → 종료.
+    Tracking 모드: 연결 → 트래킹 시작 → print_tracking_data 콜백으로 데이터 전달 → 종료.
 
     Parameters
     ----------
-    on_data : callable(full_data) – missing이 아닌 프레임마다 호출
+    print_tracking_data : callable(full_data) – missing이 아닌 프레임마다 호출
     """
     api, _ = _connect_and_load_tools(hostname, tools, rom_dir, encrypted, cipher)
     api.startTracking()
@@ -409,12 +424,12 @@ def run_tracking(hostname, tools, rom_dir, encrypted, cipher, on_data):
     try:
         while True:
             tool_data_list = api.getTrackingDataBX2()
-            timestamp      = time.time()
+            # timestamp      = time.time()
 
             for td in tool_data_list:
-                full_data = extract_full_data_dict(td, timestamp)
+                full_data = extract_full_data_dict(td)
                 if not full_data["missing"]:
-                    on_data(full_data)
+                    print_tracking_data(full_data)
 
             time.sleep(0.05)
 
@@ -423,10 +438,6 @@ def run_tracking(hostname, tools, rom_dir, encrypted, cipher, on_data):
     finally:
         api.stopTracking()
 
-
-# ===========================
-# CLI 직접 실행 (Tracking 모드)
-# ===========================
 def main():
     script_dir      = os.path.dirname(os.path.abspath(__file__))
     project_root    = os.path.dirname(os.path.dirname(script_dir))
@@ -445,21 +456,21 @@ def main():
                         help='TLS cipher suite')
     args = parser.parse_args()
 
-    # ROM 파일명 목록만 추출 (존재 여부 검증 포함)
-    tools = []
-    for tool in filter(None, args.tools.split(',')):
-        tool = tool.strip()
-        tool_path = os.path.join(args.rom_dir, tool)
-        if not os.path.isfile(tool_path):
-            print(f"Cannot access file: {tool_path}")
-            return -1
-        tools.append(tool)
-        print(f"Found ROM file: {tool_path}")
+    """
+    # ROM 파일 추출 및 Tracking 실행
+        1) 입력된 ROM 파일 이름들을 ','로 나누고 공백 제거
+        2) 각 파일이 지정한 ROM 디렉토리에 실제로 존재하는지 확인
+        3) 존재하면 tools 리스트에 추가, 없으면 에러 메시지 출력 후 종료
+    """
+    tools = validate_rom_files(args.tools.split(','), args.rom_dir)
+    if tools is None:
+        return -1
 
-    print(f"Connecting to {args.hostname}  (ROM dir: {args.rom_dir})")
-    run_tracking(args.hostname, tools, args.rom_dir, args.encrypted, args.cipher, on_data)
+    # print(f"Connecting to {args.hostname}  (ROM dir: {args.rom_dir})")
+    log.info(f"Connecting to {args.hostname}  (ROM dir: {args.rom_dir})")
+
+    run_tracking(args.hostname, tools, args.rom_dir, args.encrypted, args.cipher, print_tracking_data)
     return 0
-
 
 if __name__ == "__main__":
     try:
