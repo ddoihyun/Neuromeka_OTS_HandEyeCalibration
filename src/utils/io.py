@@ -9,6 +9,14 @@ CSV_HEADER = [
     "x", "y", "z", "u", "v", "w"
 ]
 
+def delete_calibration_csv(robot_pose_file, dataset_root):
+    paths = get_calibration_filepaths(robot_pose_file, dataset_root)
+    csv_file = paths["csv"]
+    if os.path.exists(csv_file):
+        os.remove(csv_file)
+        print(f"Deleted existing {csv_file}")
+    return csv_file
+
 def save_data_to_csv(filename, timestamp, pose_id, tool_data, robot_data=None):
     file_exists = os.path.exists(filename)
     with open(filename, mode="a", newline="", encoding='utf-8') as f:
