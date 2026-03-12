@@ -25,23 +25,40 @@ import argparse
 # ===========================
 
 def on_error_print_debug_message(method_name, error_code):
+    """
+    API 함수 실행 후 반환된 error_code가 0이 아니면 
+    해당 메서드 이름과 에러 메시지를 로그로 출력하는 디버그 함수
+    """
     if isinstance(error_code, int) and error_code != 0:
         # print(f"{method_name} failed: {ndi_vega_api.CombinedApi.errorToString(error_code)}")
         log.error(f"{method_name} failed: {ndi_vega_api.CombinedApi.errorToString(error_code)}")
+        return True
+    return False
 
 def load_tool(api, tool_definition_file_path):
+    """
+    NDI Vega 장비에서 tool SROM 파일을 로드하고 사용 가능한 포트를 반환하는 초기화 함수
+    """
+    # portHandleRequest(hardwareType, systemType, toolType, portNumber, dummyTool)
     port_handle = api.portHandleRequest("********", "*", "1", "00", "**")
+    
     if port_handle is None or port_handle < 0:
         # print("api.portHandleRequest failed")
-        log.error("api.portHandleRequest failed")
+        # log.error("api.portHandleRequest failed")
+        on_error_print_debug_message("api.portHandleRequest", port_handle)
         return -1
+    
     result = api.loadSromToPort(tool_definition_file_path, port_handle)
-    if result is not None and result != 0:
-        # print(f"api.loadSromToPort failed: {ndi_vega_api.CombinedApi.errorToString(result)}")
-        log.error(f"api.loadSromToPort failed: {ndi_vega_api.CombinedApi.errorToString(result)}") 
+
+    # if result is not None and result != 0:
+    #     # log.error(f"api.loadSromToPort failed: {ndi_vega_api.CombinedApi.errorToString(result)}") 
+    #     return -1
+    if on_error_print_debug_message("api.loadSromToPort", result):
         return -1
+    
     # print(f"Loaded ROM to port {port_handle} successfully")
     log.success(f"Loaded ROM to port {port_handle} successfully")
+    
     return port_handle
 
 def get_tool_info(api, port_handle):
@@ -71,7 +88,15 @@ def initialize_and_enable_tools(api, enabled_tools):
         enabled_tools.append(tool_data)
 
 def decode_transform_status(t):
-    """16-bit transform status 디코딩. dict 반환."""
+    """
+    NDI Vega Transform 객체의 16-bit status 값을 해석하여 
+    상태 정보를 사람이 읽기 쉬운 dict 형태로 반환
+
+    Transform.status의 비트 구조:
+        - Bits 0~7   : error code
+        - Bit 8      : missing flag (툴이 시야에 없으면 True)
+        - Bits 13~15 : face orientation (0~7)
+    """
     status     = t.status
     error_code = status & 0x00FF
     missing    = bool(status & 0x0100)
@@ -91,8 +116,11 @@ def decode_transform_status(t):
     }
 
 def extract_full_data_dict(tool_data, timestamp=None):
-    """ToolData → 전체 정보 dict 변환 (main 및 각 모드에서 공통 사용)"""
+    """NDI Vega ToolData 객체의 status와 Tool 정보(위치, 에러 여부 등)를 Python dict로 변환"""
     t    = tool_data.transform
+    # s    = tool_data.timespec_s
+    # ns   = tool_data.timespec_ns
+
     info = decode_transform_status(t)
 
     return {
