@@ -6,7 +6,7 @@ import json
 import numpy as np
 from pathlib import Path
 
-import src.ndi.tracker as nd
+import src.ndi.tracker as ndi
 from src.robot.controller import RobotController
 from src.calib.calibration import HandEyeCalibration
 from src.calib.navigator import Navigator
@@ -55,7 +55,7 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
     with open(robot_pose_file, "r", encoding="utf-8") as f:
         pose_list = sorted(json.load(f), key=lambda x: x["sample_number"])
 
-    api = nd.connect_and_setup_calibration_tools(
+    api = ndi.connect_and_setup_calibration_tools(
         hostname, tools, rom_dir, encrypted, cipher
     )
 
@@ -91,7 +91,7 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
                 save_data_to_csv(csv_file, full_data["timestamp"], pose_id,
                                  tool_data, robot_data=robot_data)
 
-            collected = nd.collect_marker_samples(
+            collected = ndi.collect_marker_samples(
                 api, samples, duration_sec, pose_id, on_sample
             )
 
@@ -110,7 +110,7 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
 # ===========================
 # TELEOPERATION MODE
 # ===========================
-def run_teleoperation_mode(robot_controller, hostname, ttool, tools, rom_dir,
+def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
                            encrypted, cipher, calib_json_path,
                            x_offset, y_offset, z_offset):
     """
@@ -142,9 +142,11 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, tools, rom_dir,
 
     # ── NDI 연결 + 툴 로드 + 트래킹 시작 ─────────────────────────────
     try:
-        api, ttool_handle = nd.connect_and_setup_tools(
-            hostname, tools, ttool, rom_dir, encrypted, cipher
+        api, ttool_handle = ndi.connect_and_setup_tools(
+            hostname, ttool, rom_dir, encrypted, cipher
         )
+        # api, enabled_tools = ndi._connect_and_load_tools(hostname, [ttool], rom_dir, encrypted, cipher)
+        # ttool_handle = f"{enabled_tools[0].transform.toolHandle:02X}"
     except RuntimeError as e:
         print(f"[ERROR] {e}")
         return
@@ -158,7 +160,7 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, tools, rom_dir,
             print("-" * 70)
             print("[WAIT] 마커 인식 중...")
 
-            raw_pose, reason = nd.get_latest_valid_pose(
+            raw_pose, reason = ndi.get_latest_valid_pose(
                 api, ttool_handle, timeout_sec=10.0
             )
 
@@ -303,7 +305,7 @@ def main():
                 print("[WARNING] Invalid selection.")
 
         elif STATE == State.TRACKING:
-            nd.run_tracking(hostname, tools, rom_dir, encrypted, cipher, on_data=nd.on_data)
+            ndi.run_tracking(hostname, tools, rom_dir, encrypted, cipher, print_tracking_data=ndi.print_tracking_data)
             STATE = State.INIT
 
         elif STATE == State.CALIBRATION:
