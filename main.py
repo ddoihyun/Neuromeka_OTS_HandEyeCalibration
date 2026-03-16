@@ -142,7 +142,7 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
 
     # ── NDI 연결 + 툴 로드 + 트래킹 시작 ─────────────────────────────
     try:
-        api, ttool_handle = ndi.connect_and_setup_tools(
+        api, ttool_handle = ndi.connect_and_setup_teleoperation(
             hostname, ttool, rom_dir, encrypted, cipher
         )
         # api, enabled_tools = ndi._connect_and_load_tools(hostname, [ttool], rom_dir, encrypted, cipher)

@@ -208,7 +208,6 @@ def connect_and_setup_calibration(hostname, tools, rom_dir, encrypted, cipher):
     api.startTracking()
     return api
 
-
 def collect_marker_samples(api, samples, duration_sec, pose_id, on_sample):
     """
     캘리브레이션 모드에서 NDI 트래킹 데이터를 수집한다.
@@ -298,41 +297,51 @@ def collect_marker_samples(api, samples, duration_sec, pose_id, on_sample):
 # Teleoperation 모드
 # ===========================
 def connect_and_setup_tools(hostname, ttool, rom_dir, encrypted, cipher):
-    api      = ndi_vega_api.CombinedApi()
-    protocol = ndi_vega_api.Protocol.SecureTCP if encrypted else ndi_vega_api.Protocol.TCP
+    """
+    Teleoperation 모드용 NDI 연결 + 단일 툴(ttool) 로드 + 트래킹 시작.
+ 
+    Returns
+    -------
+    (api, ttool_handle : str)  – 정상
+    (api, None)                – 툴 활성화 실패 또는 핸들 미확정 시
+    """
 
-    if api.connect(hostname, protocol, cipher) != 0:
-        raise RuntimeError("NDI Connection Failed!")
-
-    api.initialize()
-
-    # ── ttool ROM만 로드 ──────────────────────────────────────────────
-    ttool_path = os.path.join(rom_dir, ttool)
-    if not os.path.exists(ttool_path):
-        log.error(f"ttool ROM file not found: {ttool_path}")
-        return api, None
-
-    loaded_port_handle = load_tool(api, ttool_path)
-    if loaded_port_handle is None or loaded_port_handle < 0:
-        log.error(f"ttool ROM 로드 실패: {ttool_path}")
-        return api, None
-
-    # ── 초기화 / 활성화 ───────────────────────────────────────────────
-    all_enabled = []
-    initialize_and_enable_tools(api, all_enabled)
-
-    if not all_enabled:
+    try:
+        api, enabled_tools = connect_and_setup(hostname, [ttool], rom_dir, encrypted, cipher)
+    except RuntimeError as e:
+        raise
+ 
+    if not enabled_tools:
         log.error("No tools enabled. Check ROM file or marker connection.")
         return api, None
-
-    # ── ttool 핸들 확정 ───────────────────────────────────────────────
-    ttool_handle = f"{loaded_port_handle:02X}"
+ 
+    ttool_key = os.path.splitext(ttool)[0].lower()  # '8700449.rom' → '8700449'
+    matched = [
+        t for t in enabled_tools
+        if ttool_key in t.toolInfo.lower()
+    ]
+ 
+    if not matched:
+        if len(enabled_tools) == 1:
+            log.warning(
+                f"toolInfo 매칭 실패({ttool_key!r}). "
+                f"enabled_tools 가 1개뿐이므로 해당 툴을 ttool 로 간주합니다."
+            )
+            matched = enabled_tools
+        else:
+            log.error(
+                f"ttool({ttool!r}) 핸들을 enabled_tools 에서 찾지 못했습니다. "
+                f"toolInfo 목록: {[t.toolInfo for t in enabled_tools]}"
+            )
+            return api, None
+ 
+    ttool_handle = f"{matched[0].transform.toolHandle:02X}"
     log.info(f"ttool handle: {ttool_handle!r}")
-
+ 
     api.startTracking()
     log.success(f"Tracking started. Tool: {ttool}")
     log.info("마커를 NDI 시야 내에 위치시키세요.")
-
+ 
     return api, ttool_handle
 
 def get_latest_valid_pose(api, ttool_handle, timeout_sec=5.0):
