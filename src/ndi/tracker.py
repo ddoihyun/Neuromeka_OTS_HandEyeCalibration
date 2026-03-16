@@ -157,7 +157,7 @@ def is_missing_frame(full_data: dict) -> bool:
 # ===========================
 # 공통 연결 헬퍼 (내부용)
 # ===========================
-def _connect_and_load_tools(hostname, tools, rom_dir, encrypted, cipher):
+def connect_and_setup(hostname, tools, rom_dir, encrypted, cipher):
     """
     NDI 연결 + ROM 로드 + 툴 초기화/활성화까지 공통 처리.
 
@@ -178,7 +178,7 @@ def _connect_and_load_tools(hostname, tools, rom_dir, encrypted, cipher):
     protocol = ndi_vega_api.Protocol.SecureTCP if encrypted else ndi_vega_api.Protocol.TCP
 
     if api.connect(hostname, protocol, cipher) != 0:
-        raise RuntimeError("NDI Connection Failed!")
+        raise RuntimeError("NDI connection failed.")
 
     api.initialize()
 
@@ -202,7 +202,7 @@ def connect_and_setup_calibration_tools(hostname, tools, rom_dir, encrypted, cip
     -------
     api : ndi_vega_api.CombinedApi  (startTracking() 완료)
     """
-    api, _ = _connect_and_load_tools(hostname, tools, rom_dir, encrypted, cipher)
+    api, _ = connect_and_setup(hostname, tools, rom_dir, encrypted, cipher)
     api.startTracking()
     return api
 
@@ -425,7 +425,7 @@ def run_tracking(hostname, tools, rom_dir, encrypted, cipher, print_tracking_dat
     ----------
     print_tracking_data : callable(full_data) – missing이 아닌 프레임마다 호출
     """
-    api, _ = _connect_and_load_tools(hostname, tools, rom_dir, encrypted, cipher)
+    api, _ = connect_and_setup(hostname, tools, rom_dir, encrypted, cipher)
     api.startTracking()
 
     try:
