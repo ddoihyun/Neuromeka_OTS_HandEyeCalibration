@@ -344,7 +344,7 @@ def run_online_estimation(
     # config["ndi"]["tools"] 에 등록된 마커를 기본으로 추적
     try:
         import src.ndi.tracker as nd
-        api = nd.connect_and_setup_calibration_tools(
+        api = nd.connect_and_setup_calibration(
             hostname, tools, rom_dir, encrypted, cipher
         )
         log.success("NDI 트래킹 시작 완료")

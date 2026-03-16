@@ -155,7 +155,7 @@ def is_missing_frame(full_data: dict) -> bool:
     return full_data["missing"]
 
 # ===========================
-# 공통 연결 헬퍼 (내부용)
+# 공통 연결 헬퍼
 # ===========================
 def connect_and_setup(hostname, tools, rom_dir, encrypted, cipher):
     """
@@ -163,8 +163,10 @@ def connect_and_setup(hostname, tools, rom_dir, encrypted, cipher):
 
     Returns
     -------
-    api          : ndi_vega_api.CombinedApi  (startTracking 전 상태)
+    api : ndi_vega_api.CombinedApi 
+        연결된 API 객체 (tracking 시작 전 상태)
     enabled_tools: list[ToolData]
+        활성화된 툴 목록
 
     Raises
     ------
@@ -194,7 +196,7 @@ def connect_and_setup(hostname, tools, rom_dir, encrypted, cipher):
 # ===========================
 # Calibration 모드
 # ===========================
-def connect_and_setup_calibration_tools(hostname, tools, rom_dir, encrypted, cipher):
+def connect_and_setup_calibration(hostname, tools, rom_dir, encrypted, cipher):
     """
     캘리브레이션 모드용 NDI 연결 + 툴 로드 + 트래킹 시작.
 

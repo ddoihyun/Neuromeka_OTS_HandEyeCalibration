@@ -53,7 +53,7 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
     with open(robot_pose_file, "r", encoding="utf-8") as f:
         pose_list = sorted(json.load(f), key=lambda x: x["sample_number"])
 
-    api = ndi.connect_and_setup_calibration_tools(hostname, tools, rom_dir, encrypted, cipher)
+    api = ndi.connect_and_setup_calibration(hostname, tools, rom_dir, encrypted, cipher)
 
     try:
         for pose in pose_list:

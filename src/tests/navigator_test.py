@@ -387,7 +387,7 @@ def run_online(calib_path: str, out_csv: str):
 
     try:
         import src.ndi.tracker as nd
-        api = nd.connect_and_setup_calibration_tools(
+        api = nd.connect_and_setup_calibration(
             hostname, tools, rom_dir, encrypted, cipher
         )
         log.success("NDI 연결 및 트래킹 시작")
