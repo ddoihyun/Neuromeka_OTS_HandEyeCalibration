@@ -150,6 +150,10 @@ def extract_full_data_dict(tool_data, timestamp=None):
         "face":        info["face"],
     }
 
+def is_missing_frame(full_data: dict) -> bool:
+    """NDI 프레임이 유효하지 않은 상태인지 판별"""
+    return full_data["missing"]
+
 # ===========================
 # 공통 연결 헬퍼 (내부용)
 # ===========================
@@ -235,7 +239,7 @@ def collect_marker_samples(api, samples, duration_sec, pose_id, on_sample):
         for td in tool_data_list:
             full_data = extract_full_data_dict(td, timestamp)
 
-            if full_data["missing"]:
+            if is_missing_frame(full_data):
                 consecutive_missing += 1
                 if consecutive_missing >= 20:
                     # print(
@@ -368,7 +372,7 @@ def get_latest_valid_pose(api, ttool_handle, timeout_sec=5.0):
                 seen_other_tool = True
                 continue
 
-            if full_data["missing"]:
+            if is_missing_frame(full_data):
                 continue
 
             pos = full_data["position"]
@@ -431,7 +435,7 @@ def run_tracking(hostname, tools, rom_dir, encrypted, cipher, print_tracking_dat
 
             for td in tool_data_list:
                 full_data = extract_full_data_dict(td)
-                if not full_data["missing"]:
+                if not is_missing_frame(full_data):
                     print_tracking_data(full_data)
 
             time.sleep(0.05)
