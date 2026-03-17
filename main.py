@@ -342,7 +342,7 @@ def main():
             run_teleoperation_mode(
                 robot_controller=robot_controller,
                 hostname=hostname,
-                ttool=ttool, tools=tools, rom_dir=rom_dir,
+                ttool=ttool, rom_dir=rom_dir,
                 encrypted=encrypted, cipher=cipher,
                 calib_json_path=calib_json,
                 x_offset= x_offset, y_offset= y_offset, z_offset= z_offset
