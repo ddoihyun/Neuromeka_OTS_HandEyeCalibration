@@ -95,17 +95,17 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
 
             if len(collected) == 0:
                 # print(f"[ERROR] Pose {pose_id}: NO VALID DATA!", flush=True)
-                log.error(f"Pose {pose_id}: NO VALID DATA!", flush=True)
+                log.error(f"Pose {pose_id}: NO VALID DATA!")
 
             elif len(collected) < samples:
                 # print(f"[WARNING] Pose {pose_id}: Only {len(collected)}/{samples} samples (timeout).", flush=True)
-                log.warning(f"[WARNING] Pose {pose_id}: Only {len(collected)}/{samples} samples (timeout).", flush=True)
+                log.warning(f"[WARNING] Pose {pose_id}: Only {len(collected)}/{samples} samples (timeout).")
 
     finally:
         api.stopTracking()
         robot_controller.move_to_home()
         # print("Calibration finished.", flush=True)
-        log.info("Calibration finished.", flush=True)
+        log.info("Calibration finished.")
 
 # ===========================
 # TELEOPERATION MODE
