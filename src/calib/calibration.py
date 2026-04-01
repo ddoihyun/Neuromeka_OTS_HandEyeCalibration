@@ -12,8 +12,8 @@ from scipy.spatial.transform import Rotation as R
 from scipy.linalg import svd, lstsq
 from scipy.optimize import least_squares
 from pathlib import Path
-from src.utils.logger import get_logger
-log = get_logger(__name__)
+# from src.utils.logger import get_logger
+# log = get_logger(__name__)
 
 try:
     from thc_calibration.rotation_utils import average_SE3
@@ -57,6 +57,9 @@ class HandEyeCalibration:
         self.ndi_axis_scale = np.ones(3)
 
     def _resolve_output_paths(self, csv_path, result_json_path, result_png_path):
+        """
+        CSV 파일 이름을 기반으로 결과 JSON/PNG 파일 경로를 자동 생성해주는 유틸 함수
+        """
         csv_path = Path(csv_path)
         results_dir = Path('./dataset/results')
         results_dir.mkdir(parents=True, exist_ok=True)
@@ -99,15 +102,9 @@ class HandEyeCalibration:
                 'pose_id': pose_id,
                 'q0': avg_quat[3], 'qx': avg_quat[0],
                 'qy': avg_quat[1], 'qz': avg_quat[2],
-                'tx': avg_T[0, 3],
-                'ty': avg_T[1, 3],
-                'tz': avg_T[2, 3],
-                'x':  inlier_group['x'].mean(),
-                'y':  inlier_group['y'].mean(),
-                'z':  inlier_group['z'].mean(),
-                'u':  inlier_group['u'].mean(),
-                'v':  inlier_group['v'].mean(),
-                'w':  inlier_group['w'].mean(),
+                'tx': avg_T[0, 3], 'ty': avg_T[1, 3], 'tz': avg_T[2, 3],
+                'x':  inlier_group['x'].mean(), 'y':  inlier_group['y'].mean(), 'z':  inlier_group['z'].mean(),
+                'u':  inlier_group['u'].mean(), 'v':  inlier_group['v'].mean(), 'w':  inlier_group['w'].mean(),
                 'samples_raw': len(group),
                 'samples_inlier': len(inlier_group),
             }
@@ -1233,7 +1230,7 @@ class HandEyeCalibration:
 
 if __name__ == "__main__":
     import sys
-    csv_path = sys.argv[1] if len(sys.argv) > 1 else './dataset/calibration/calibration_data.csv'
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else '../../dataset/calibration/calibration_data.csv'
     print(f"입력 파일: {csv_path}\n")
     calibration = HandEyeCalibration(csv_path=csv_path)
     calibration.run()
