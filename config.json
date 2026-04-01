@@ -11,11 +11,11 @@
     "cipher": ""
   },
   "robot": {
-    "ip": "192.168.0.79"
+    "ip": "192.168.0.129"
   },
   "dataset": {
     "dataset_root": "./dataset",
-    "robot_pose_file": "./dataset/poses/robot_pose_broad.json"
+    "robot_pose_file": "./dataset/poses/robot_pose.json"
   },
   "calibration": {
     "duration_sec": 10,
