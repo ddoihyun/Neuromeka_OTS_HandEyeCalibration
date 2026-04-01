@@ -1233,7 +1233,7 @@ class HandEyeCalibration:
 
 if __name__ == "__main__":
     import sys
-    csv_path = sys.argv[1] if len(sys.argv) > 1 else './dataset/calibration/calibration_data_broad.csv'
+    csv_path = sys.argv[1] if len(sys.argv) > 1 else './dataset/calibration/calibration_data.csv'
     print(f"입력 파일: {csv_path}\n")
     calibration = HandEyeCalibration(csv_path=csv_path)
     calibration.run()
