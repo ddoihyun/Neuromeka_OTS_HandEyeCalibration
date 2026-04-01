@@ -25,7 +25,7 @@
     "robot_pose_file": "./dataset/poses/robot_pose_test.json",
     "calibration_data_file": "./dataset/results/calibration_result.json"
   },
-  "teleoperation": {
+  "navigation": {
     "ttool": "8700340.rom",
     "x_offset": 0.0,
     "y_offset": -50.0,

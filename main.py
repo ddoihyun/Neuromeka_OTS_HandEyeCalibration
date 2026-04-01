@@ -21,7 +21,7 @@ class State:
     INIT          = "INIT"
     TRACKING      = "TRACKING"
     CALIBRATION   = "CALIBRATION"
-    TELEOPERATION = "TELEOPERATION"
+    NAVIGATION = "NAVIGATION"
     EXIT          = "EXIT"
 
 # ===========================
@@ -108,13 +108,13 @@ def run_calibration_mode(robot_controller, hostname, tools, rom_dir, encrypted, 
         log.info("Calibration finished.")
 
 # ===========================
-# TELEOPERATION MODE
+# NAVIAGATION MODE
 # ===========================
-def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
+def run_naviagation_mode(robot_controller, hostname, ttool, rom_dir,
                            encrypted, cipher, calib_json_path,
                            x_offset, y_offset, z_offset):
     """
-    Teleoperation 모드:
+    Navigation 모드:
       1. ttool 마커 인식 → Navigator 로 로봇 EE 목표 좌표 변환
       2. Offset 적용 좌표 출력
       3. Enter 입력 → 로봇 이동 실행
@@ -124,7 +124,7 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
     """
 
     print("\n" + "=" * 70)
-    print("[TELEOPERATION] ttool 마커 인식 → 로봇 EE 이동 모드")
+    print("[NAVIAGATION] ttool 마커 인식 → 로봇 EE 이동 모드")
     print("  마커 인식 후 목표 좌표 출력 → Enter: 이동 / 'q': 종료")
     print("=" * 70)
 
@@ -222,7 +222,7 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
             sel = input("  이동하려면 Enter / 재인식(r) / 종료(q): ").strip().lower()
 
             if sel == 'q':
-                print("[INFO] Teleoperation mode 종료.")
+                print("[INFO] Navigation mode 종료.")
                 break
 
             elif sel == 'r':
@@ -250,7 +250,7 @@ def run_teleoperation_mode(robot_controller, hostname, ttool, rom_dir,
 
     except KeyboardInterrupt:
 
-        print("\n[INFO] Teleoperation mode interrupted by user.")
+        print("\n[INFO] Navigation mode interrupted by user.")
 
     finally:
 
@@ -275,10 +275,10 @@ def main():
     dataset_root    = config["dataset"]["dataset_root"]
     robot_pose_file = config["dataset"]["robot_pose_file"]
 
-    ttool = config["teleoperation"]["ttool"]
-    x_offset = config["teleoperation"]["x_offset"]
-    y_offset = config["teleoperation"]["y_offset"]
-    z_offset = config["teleoperation"]["z_offset"]
+    ttool = config["navigation"]["ttool"]
+    x_offset = config["navigation"]["x_offset"]
+    y_offset = config["navigation"]["y_offset"]
+    z_offset = config["navigation"]["z_offset"]
 
     paths = io.get_calibration_filepaths(robot_pose_file, dataset_root)
 
@@ -288,7 +288,7 @@ def main():
             print("State: INIT")
             print("  1: Tracking Mode")
             print("  2: Calibration Mode")
-            print("  3: Teleoperation Mode")
+            print("  3: Navigation Mode")
             print("  Q: Exit")
             print("=" * 40)
             sel = input("Select: ").strip()
@@ -298,7 +298,7 @@ def main():
             elif sel == "2":
                 STATE = State.CALIBRATION
             elif sel == "3":
-                STATE = State.TELEOPERATION
+                STATE = State.NAVIGATION
             elif sel.lower() == "q":
                 STATE = State.EXIT
             else:
@@ -328,7 +328,7 @@ def main():
             calib.run()
             STATE = State.INIT
 
-        elif STATE == State.TELEOPERATION:
+        elif STATE == State.NAVIGATION:
             calib_json = paths["json"]
 
             robot_controller = RobotController(robot_ip=robot_ip)

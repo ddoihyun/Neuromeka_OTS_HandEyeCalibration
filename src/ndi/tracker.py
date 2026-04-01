@@ -294,11 +294,11 @@ def collect_marker_samples(api, samples, duration_sec, pose_id, on_sample):
 
 
 # ===========================
-# Teleoperation 모드
+# Navigation 모드
 # ===========================
-def connect_and_setup_teleoperation(hostname, ttool, rom_dir, encrypted, cipher):
+def connect_and_setup_navigation(hostname, ttool, rom_dir, encrypted, cipher):
     """
-    Teleoperation 모드용 NDI 연결 + 단일 툴(ttool) 로드 + 트래킹 시작.
+    Navigation 모드용 NDI 연결 + 단일 툴(ttool) 로드 + 트래킹 시작.
  
     Returns
     -------
