@@ -61,7 +61,7 @@ class HandEyeCalibration:
         CSV 파일 이름을 기반으로 결과 JSON/PNG 파일 경로를 자동 생성해주는 유틸 함수
         """
         csv_path = Path(csv_path)
-        results_dir = Path('./dataset/results')
+        results_dir = Path('../../dataset/results')
         results_dir.mkdir(parents=True, exist_ok=True)
 
         if result_json_path is None:
