@@ -41,7 +41,7 @@ class RobotController:
         -25.289349, 38.83128, 116.39529, -18.511345, -55.676815, -85.79714
     ]
 
-    def __init__(self, robot_ip: str = '192.168.0.79', index: int = 0):
+    def __init__(self, robot_ip: str = '192.168.0.129', index: int = 0):
         """
         Parameters
         ----------
@@ -141,8 +141,8 @@ def _parse_args():
         description="RobotController 단독 실행",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('--ip', type=str, default='192.168.0.79',
-                        help='로봇 IP 주소 (default: 192.168.0.79)')
+    parser.add_argument('--ip', type=str, default='192.168.0.129',
+                        help='로봇 IP 주소 (default: 192.168.0.129)')
     parser.add_argument('--json', type=str, default=None,
                         help='실행할 robot_pose JSON 파일 경로\n'
                              '예) dataset/poses/robot_pose_broad.json')
