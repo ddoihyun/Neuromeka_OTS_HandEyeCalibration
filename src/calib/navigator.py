@@ -29,7 +29,7 @@ class Navigator:
         T_base_ee_target = inv(T_ndi_base) @ T_ndi_marker_new @ inv(T_ee_marker)
     """
 
-    def __init__(self, calib_path='./dataset/results/calibration_result.json'):
+    def __init__(self, calib_path='../../dataset/results/calibration_result.json'):
         with open(calib_path, 'r') as f:
             calib = json.load(f)
 
@@ -91,7 +91,7 @@ class Navigator:
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='NDI 마커 → 로봇 EE 좌표 변환')
-    parser.add_argument('--calib', default='./dataset/results/calibration_result.json',
+    parser.add_argument('--calib', default='../../dataset/results/calibration_result.json',
                         help='캘리브레이션 결과 JSON 경로')
     parser.add_argument('values', nargs='*', type=float,
                         help='q0 qx qy qz tx ty tz (7개 값)')
