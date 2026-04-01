@@ -58,6 +58,7 @@ htmlcov/
 *.csv
 *.pngcl
 dataset/logs/
+dataset/results
 
 # =========================
 # Jupyter
